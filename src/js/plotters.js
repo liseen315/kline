@@ -82,11 +82,57 @@ export class Plotter extends NamedObject {
     }
 
     static createRectangles(context, rects) {
+        // liseen 画蜡烛线的具体实现
         context.beginPath();
         let e, i, cnt = rects.length;
         for (i = 0; i < cnt; i++) {
             e = rects[i];
             context.rect(e.x, e.y, e.w, e.h);
+        }
+    }
+
+    static creatCircle(context,posList,color) {
+        let postLen = posList.length;
+        let endAngle = 2 * Math.PI;
+        context.save();
+        context.translate(0.5, 0.5);
+        context.strokeStyle = color;
+        context.fillStyle = '#FFFFFF';
+        context.beginPath();
+        for (let i = 0;i < postLen; i++) {
+            let right = posList[i].x + 7
+            context.moveTo(right,posList[i].y)
+            context.arc(posList[i].x,posList[i].y,7,0,endAngle);
+        }
+       
+        context.fill();
+        context.stroke();
+        context.closePath();
+        context.restore();
+    }
+
+    static drawCircle2(context,pos,color) {
+        let endAngle = 2 * Math.PI;
+        context.save();
+        context.translate(0.5, 0.5);
+        context.strokeStyle = color;
+        context.fillStyle = '#FFFFFF';
+        context.beginPath();
+
+        let right = pos.x + 7
+        context.moveTo(right,pos.y)
+        context.arc(pos.x,pos.y,7,0,endAngle);
+        
+        context.fill();
+        context.stroke();
+        context.closePath();
+        context.restore();
+    }
+
+    static drawTypeStr (context,str,rects,color,fonts='9px Arial') {
+        let posList = rects.length;
+        for (let i = 0;i < posList;i ++) {
+            Plotter.drawString(context,str,rects[i],color,fonts)
         }
     }
 
@@ -99,11 +145,13 @@ export class Plotter extends NamedObject {
         context.closePath();
     }
 
-    static drawString(context, str, rect) {
+    static drawString(context, str, rect,color='#FFFFFF',fonts='12px Arial') {
         let w = context.measureText(str).width;
         if (rect.w < w) {
             return false;
         }
+        context.font = fonts;
+        context.fillStyle = color;
         context.fillText(str, rect.x, rect.y);
         rect.x += w;
         rect.w -= w;
@@ -144,7 +192,7 @@ export class MainAreaBackgroundPlotter extends BackgroundPlotter {
     constructor(name) {
         super(name);
     }
-
+    // 黑色背景
     Draw(context) {
         let mgr = ChartManager.instance;
         let area = mgr.getArea(this.getAreaName());
@@ -194,7 +242,7 @@ export class TimelineAreaBackgroundPlotter extends BackgroundPlotter {
     constructor(name) {
         super(name);
     }
-
+    // 最下面的时间轴Plotter
     Draw(context) {
         let mgr = ChartManager.instance;
         let area = mgr.getArea(this.getAreaName());
@@ -258,7 +306,7 @@ export class CandlestickPlotter extends NamedObject {
     constructor(name) {
         super(name);
     }
-
+    // 蜡烛线-----
     Draw(context) {
         let mgr = ChartManager.instance;
         let ds = mgr.getDataSource(this.getDataSourceName());
@@ -288,13 +336,18 @@ export class CandlestickPlotter extends NamedObject {
         let fillPosRects = [];
         let fillUchRects = [];
         let fillNegRects = [];
+        let btypePos = [];
+        let ytypePos = [];
+        let ttypePos = [];
         for (let i = start; i < last; i++) {
             let data = ds.getDataAt(i);
             let high = range.toY(data.high);
             let low = range.toY(data.low);
             let open = data.open;
             let close = data.close;
+            let type = data.type;
             if (close > open) {
+                // 绿色的
                 let top = range.toY(close);
                 let bottom = range.toY(open);
                 let iH = Math.max(bottom - top, 1);
@@ -320,6 +373,7 @@ export class CandlestickPlotter extends NamedObject {
                 if (high < low)
                     fillUchRects.push({x: center, y: high, w: 1, h: low - high});
             } else {
+                // 红色的
                 let top = range.toY(open);
                 let bottom = range.toY(close);
                 let iH = Math.max(bottom - top, 1);
@@ -331,29 +385,76 @@ export class CandlestickPlotter extends NamedObject {
                 if (high < low)
                     fillNegRects.push({x: center, y: high, w: 1, h: low - high});
             }
+            // 1 爆 2 压 3 拖
+            if (type.length >  0) {
+                for (let j = 0; j < type.length; j++) {
+                    let posY = range.toY(type[j].price);
+                    if (type[j].show && j== 0) {
+                        btypePos.push({x: center,y:posY })
+                    }else if (type[j].show && j == 1) {
+                        ytypePos.push({x: center,y:posY })
+                    }else if(type[j].show && j == 2) {
+                        ttypePos.push({x: center,y:posY })
+                    }
+                }
+            }
+
             left += cW;
             center += cW;
         }
+
+        // console.log('-------',btypePos,ytypePos,ttypePos)
+        // liseen 画k线
         if (strokePosRects.length > 0) {
+            // 绿色矩形绘制
             context.strokeStyle = theme.getColor(themes.Theme.Color.Positive);
             Plotter.createRectangles(context, strokePosRects);
             context.stroke();
         }
         if (fillPosRects.length > 0) {
+            // 绘制绿色的延长线
             context.fillStyle = theme.getColor(themes.Theme.Color.Positive);
             Plotter.createRectangles(context, fillPosRects);
             context.fill();
+
         }
         if (fillUchRects.length > 0) {
+            // 绘制水平的虚线
             context.fillStyle = theme.getColor(themes.Theme.Color.Negative);
             Plotter.createRectangles(context, fillUchRects);
             context.fill();
         }
         if (fillNegRects.length > 0) {
+            // 绘制红色快+延长线
             context.fillStyle = theme.getColor(themes.Theme.Color.Negative);
             Plotter.createRectangles(context, fillNegRects);
             context.fill();
         }
+
+        if (btypePos.length > 0) {
+            // Plotter.creatCircle(context,btypePos,'#ae00fe')
+            for (let i = 0;i< btypePos.length;i++) {
+                Plotter.drawCircle2(context,btypePos[i],'#ae00fe')
+            }
+            Plotter.drawTypeStr(context,'爆',btypePos,'#ae00fe')
+        }
+
+        if (ytypePos.length > 0) {
+            // Plotter.creatCircle(context,ytypePos,'#ff002a')
+            for (let i = 0;i< ytypePos.length;i++) {
+                Plotter.drawCircle2(context,ytypePos[i],'#ff002a')
+            }
+            Plotter.drawTypeStr(context,'压',ytypePos,'#ff002a')
+        }
+
+        if (ttypePos.length > 0) {
+            // Plotter.creatCircle(context,ttypePos,'#0022ff')
+            for (let i = 0;i< ttypePos.length;i++) {
+                Plotter.drawCircle2(context,ttypePos[i],'#0022ff')
+            }
+            Plotter.drawTypeStr(context,'托',ttypePos,'#0022ff')
+        }
+
     }
 
 }
@@ -483,6 +584,7 @@ export class OHLCPlotter extends Plotter {
     }
 
     Draw(context) {
+        
         let mgr = ChartManager.instance;
         let ds = mgr.getDataSource(this.getDataSourceName());
         if (!Util.isInstance(ds, data_sources.MainDataSource) || ds.getDataCount() < 1) {
@@ -892,7 +994,7 @@ export class IndicatorPlotter extends NamedObject {
             context.fill();
         }
     }
-
+    // liseen 画圆圈----
     drawSARPoint(context, theme, output, first, last, startX, cW, iW, range) {
         let r = iW >> 1;
         if (r < 0.5) r = 0.5;
@@ -1008,7 +1110,9 @@ export class MinMaxPlotter extends NamedObject {
 
     Draw(context) {
         let mgr = ChartManager.instance;
+
         let ds = mgr.getDataSource(this.getDataSourceName());
+        // console.log('---ds-----',ds)
         if (ds.getDataCount() < 1)
             return;
         let timeline = mgr.getTimeline(this.getDataSourceName());
@@ -1051,6 +1155,7 @@ export class MinMaxPlotter extends NamedObject {
         Plotter.drawLine(context, arrowStart, y, arrowStop, y);
         Plotter.drawLine(context, arrowStart, y, _arrowStop, y + 2);
         Plotter.drawLine(context, arrowStart, y, _arrowStop, y - 2);
+        // 画线上的数字 liseen
         context.fillText(Util.fromFloat(v, digits), textStart, y);
     }
 

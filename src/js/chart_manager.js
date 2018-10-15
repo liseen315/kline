@@ -197,8 +197,9 @@ export class ChartManager {
                         break;
                 }
                 this.setPlotter(plotterName, plotter);
-                plotter = new plotters.MinMaxPlotter(areaName + ".decoration");
-                this.setPlotter(plotter.getName(), plotter);
+                // liseen ?????
+                // plotter = new plotters.MinMaxPlotter(areaName + ".decoration");
+                // this.setPlotter(plotter.getName(), plotter);
                 break;
             case "Line":
                 dp = new data_providers.IndicatorDataProvider(dpName);
@@ -637,7 +638,7 @@ export class ChartManager {
     }
 
     scale(s) {
-        if (this._highlightedFrame === null)
+        if (this._highlightedFrame === null || this._highlightedFrame === 'undefined')
             return;
         let hiArea = this._highlightedFrame.getHighlightedArea();
         if (this.getRange(hiArea.getName()) !== undefined) {

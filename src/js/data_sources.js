@@ -105,13 +105,15 @@ export class MainDataSource extends DataSource {
             for (i = 0; i < cnt; i++) {
                 e = data[i];
                 if (e[0] === lastItem.date) {
+                    // 如果第一个跟最后一个数据一样
                     if (lastItem.open === e[1] &&
                         lastItem.high === e[2] &&
                         lastItem.low === e[3] &&
                         lastItem.close === e[4] &&
-                        lastItem.volume === e[5]) {
+                        lastItem.volume === e[5] && lastItem.type === e[6] ) {
                         this.setUpdateMode(DataSource.UpdateMode.DoNothing);
                     } else {
+                        // 否则拿最后一条数据
                         this.setUpdateMode(DataSource.UpdateMode.Update);
                         this._dataItems[lastIndex] = {
                             date: e[0],
@@ -119,12 +121,14 @@ export class MainDataSource extends DataSource {
                             high: e[2],
                             low: e[3],
                             close: e[4],
-                            volume: e[5]
+                            volume: e[5],
+                            type: e[6],
                         };
                         this._updatedCount++;
                     }
                     i++;
                     if (i < cnt) {
+                        // 全部压进堆栈
                         this.setUpdateMode(DataSource.UpdateMode.Append);
                         for (; i < cnt; i++, this._appendedCount++) {
                             e = data[i];
@@ -134,7 +138,8 @@ export class MainDataSource extends DataSource {
                                 high: e[2],
                                 low: e[3],
                                 close: e[4],
-                                volume: e[5]
+                                volume: e[5],
+                                type: e[6],
                             });
                         }
                     }
@@ -162,7 +167,8 @@ export class MainDataSource extends DataSource {
                 high: e[2],
                 low: e[3],
                 close: e[4],
-                volume: e[5]
+                volume: e[5],
+                type: e[6]
             });
         }
         return true;
