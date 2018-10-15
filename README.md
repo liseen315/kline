@@ -43,7 +43,7 @@
 安装
 
 ```bash
-$ npm install kline 
+$ npm install klinefixer 
 ```
 
 * 使用标签引入, 在HTML页面头部加入
